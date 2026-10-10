@@ -1,5 +1,11 @@
 venv/
-.venv/
 __pycache__/
-*.pyc
 .env
+*.pyc
+.streamlit/secrets.toml
+
+# Local PDFs and generated data
+*.pdf
+
+# Model and cache files
+.cache/

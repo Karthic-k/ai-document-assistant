@@ -1,46 +1,67 @@
-
 from src.pdf_loader import extract_text_from_pdf
 from src.text_chunker import chunk_text
+from src.embeddings import generate_embeddings
 from src.retriever import build_index, search_chunks
 
 
-# Step 1: Read the PDF
-with open("sample.pdf", "rb") as pdf_file:
+PDF_PATH = "sample.pdf"
+
+with open(PDF_PATH, "rb") as pdf_file:
+
     text = extract_text_from_pdf(pdf_file)
 
-# Step 2: Create chunks
+
 chunks = chunk_text(
     text,
     chunk_size=500,
     overlap=50
 )
 
-if not chunks:
-    raise ValueError(
-        "No text extracted. Check sample.pdf."
-    )
+embeddings = generate_embeddings(chunks)
 
-# Step 3: Build the vector index
-index = build_index(chunks)
-
-print("Chunks indexed:", index.ntotal)
-
-# Step 4: Ask a question
-query = input("\nAsk a question about your PDF: ")
-
-# Step 5: Retrieve relevant chunks
-results = search_chunks(
-    query=query,
-    chunks=chunks,
-    index=index,
-    top_k=3
+index = build_index(
+    chunks,
+    embeddings
 )
 
-# Step 6: Display the results
-print("\n--- SEARCH RESULTS ---")
 
-for rank, result in enumerate(results, start=1):
-    print(f"\nResult {rank}")
-    print(f"Similarity: {result['score']:.4f}")
-    print(f"Chunk index: {result['index']}")
-    print(result["chunk"])
+test_questions = [
+    "What is the main topic of this document?",
+    "What are the main findings?",
+    "What methodology is discussed?"
+]
+
+
+for question in test_questions:
+
+    print("\n" + "=" * 70)
+
+    print(f"QUESTION: {question}")
+
+    print("=" * 70)
+
+    results = search_chunks(
+        query=question,
+        index=index,
+        chunks=chunks,
+        top_k=3,
+        similarity_threshold=0.15
+    )
+
+    if not results:
+
+        print("NO RELEVANT CHUNKS FOUND.")
+        continue
+
+    for rank, result in enumerate(
+        results,
+        start=1
+    ):
+
+        print(
+            f"\nRank {rank} "
+            f"| Score: {result['score']:.3f} "
+            f"| Chunk: {result['index']}"
+        )
+
+        print(result["chunk"][:500])
