@@ -1,19 +1,33 @@
-
+from groq import (
+    Groq,
+    APIConnectionError,
+    APIStatusError,
+    RateLimitError,
+)
 import os
-
+import streamlit as st
+from streamlit.errors import StreamlitSecretNotFoundError
 from dotenv import load_dotenv
-from groq import Groq
-from groq import APIConnectionError, APIStatusError, RateLimitError
 
-
-# Load configuration from the project-root .env file.
 load_dotenv()
+def get_setting(name, default=None):
+    # First check local environment variables (.env).
+    value = os.getenv(name)
+    if value:
+        return value
 
-API_KEY = os.getenv("GROQ_API_KEY")
-MODEL_NAME = os.getenv(
+    # If unavailable, check Streamlit Cloud Secrets.
+    try:
+        return st.secrets.get(name, default)
+    except StreamlitSecretNotFoundError:
+        return default
+
+API_KEY = get_setting("GROQ_API_KEY")
+MODEL_NAME = get_setting(
     "GROQ_MODEL",
     "llama-3.3-70b-versatile"
 )
+
 
 
 def generate_answer(question, retrieved_chunks):
