@@ -98,8 +98,12 @@ if uploaded_pdf is not None:
                     st.stop()
 
                 try:
-                    PdfReader(uploaded_pdf, strict=True)
+                    reader = PdfReader(uploaded_pdf, strict=False)
                     uploaded_pdf.seek(0)
+
+                    if len(reader.pages) == 0:
+                        st.error("This PDF contains no pages.")
+                        st.stop()
                 except (PdfReadError, ValueError, OSError):
                     st.error("Invalid or corrupted PDF. Please upload a valid PDF.")
                     st.stop()
@@ -127,7 +131,10 @@ if uploaded_pdf is not None:
                             chunk["text"]
                             for chunk in chunks
                         ]
-
+                        st.info(
+                                f"Extracted {len(pages)} pages and "
+                                f"created {len(chunks)} chunks."
+                        )
                         embeddings = generate_embeddings(
                             chunk_texts
                         )
