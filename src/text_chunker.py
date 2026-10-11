@@ -36,122 +36,76 @@ def chunk_text(text, chunk_size=500, overlap=50):
 
 
 
+
 def sentence_aware_chunk_text(
     text,
     chunk_size=500,
     overlap_sentences=1
 ):
-    """
-    Create sentence-aware chunks with sentence overlap.
-    """
+    """Create sentence-aware chunks with safe sentence overlap."""
 
     if chunk_size <= 0:
-        raise ValueError(
-            "chunk_size must be positive"
-        )
+        raise ValueError("chunk_size must be positive")
 
     if overlap_sentences < 0:
-        raise ValueError(
-            "overlap_sentences cannot be negative"
-        )
+        raise ValueError("overlap_sentences cannot be negative")
 
     text = text.strip()
 
     if not text:
         return []
 
-    # Split text into sentences.
-    sentences = re.split(
-        r'(?<=[.!?])\s+',
-        text
-    )
-
-    sentences = [
-        sentence.strip()
-        for sentence in sentences
-        if sentence.strip()
-    ]
+    sentences = re.split(r'(?<=[.!?])\s+', text)
+    sentences = [s.strip() for s in sentences if s.strip()]
 
     chunks = []
-
     current_sentences = []
-    current_length = 0
 
-    i = 0
+    for sentence in sentences:
 
-    while i < len(sentences):
+        # Handle a sentence longer than the chunk limit.
+        if len(sentence) > chunk_size:
+            if current_sentences:
+                chunks.append(" ".join(current_sentences))
+                current_sentences = []
 
-        sentence = sentences[i]
+            # Split oversized sentences into smaller pieces.
+            for start in range(0, len(sentence), chunk_size):
+                piece = sentence[start:start + chunk_size].strip()
+                if piece:
+                    chunks.append(piece)
 
-        additional_length = (
-            len(sentence)
-            + (1 if current_sentences else 0)
-        )
+            continue
 
-        # Add sentence if it fits.
-        if (
-            current_length
-            + additional_length
-            <= chunk_size
-        ):
+        candidate = " ".join(current_sentences + [sentence])
+
+        if len(candidate) <= chunk_size:
+            current_sentences.append(sentence)
+
+        else:
+            if current_sentences:
+                chunks.append(" ".join(current_sentences))
+
+            # Retain overlap, but drop old sentences if needed
+            # to make room for the next sentence.
+            current_sentences = (
+                current_sentences[-overlap_sentences:]
+                if overlap_sentences > 0
+                else []
+            )
+
+            while current_sentences and len(
+                " ".join(current_sentences + [sentence])
+            ) > chunk_size:
+                current_sentences.pop(0)
 
             current_sentences.append(sentence)
 
-            current_length += additional_length
-
-            i += 1
-
-        else:
-
-            # Save current chunk.
-            if current_sentences:
-
-                chunks.append(
-                    " ".join(current_sentences)
-                )
-
-            # Keep the last N sentences
-            # for overlap.
-            if overlap_sentences > 0:
-
-                current_sentences = (
-                    current_sentences[
-                        -overlap_sentences:
-                    ]
-                )
-
-            else:
-
-                current_sentences = []
-
-            current_length = len(
-                " ".join(current_sentences)
-            )
-
-            # If a single sentence is larger
-            # than chunk_size, keep it as its
-            # own chunk rather than losing it.
-            if (
-                len(sentence) > chunk_size
-                and not current_sentences
-            ):
-
-                chunks.append(sentence)
-
-                i += 1
-
-                current_sentences = []
-
-                current_length = 0
-
-    # Add final chunk.
     if current_sentences:
-
-        chunks.append(
-            " ".join(current_sentences)
-        )
+        chunks.append(" ".join(current_sentences))
 
     return chunks
+
 
 def create_page_aware_chunks(
     pages,

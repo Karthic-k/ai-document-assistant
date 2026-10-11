@@ -110,6 +110,17 @@ if uploaded_pdf is not None:
                 # Extract text from the uploaded PDF.
                 pages = extract_pages_from_pdf(uploaded_pdf)
 
+                st.write("DEBUG: PDF text extraction completed")
+                st.write(f"Pages with text: {len(pages)}")
+
+                if pages:
+                    st.write("DEBUG: Starting chunking...")
+                    chunks = create_page_aware_chunks(
+                        pages,
+                        chunk_size=500,
+                        overlap_sentences=1
+                    )
+                    st.write(f"DEBUG: Chunking completed: {len(chunks)} chunks")
                 if not pages:
                     st.error(
                         "No readable text was found. "
@@ -121,6 +132,8 @@ if uploaded_pdf is not None:
                         chunk_size=500,
                         overlap_sentences=1
                     )
+                    st.write(f"DEBUG: Chunking completed: {len(chunks)} chunks")
+                    st.write("DEBUG: Embedding generation completed")
 
                     if not chunks:
                         st.error(
@@ -143,6 +156,9 @@ if uploaded_pdf is not None:
                             chunks,
                             embeddings
                         )
+
+                        print("DEBUG: FAISS index built successfully")
+                        st.write("DEBUG: FAISS index built successfully")
 
                         st.session_state.chunks = chunks
                         st.session_state.index = index
